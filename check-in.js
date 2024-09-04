@@ -2,11 +2,17 @@ const fetch = require('node-fetch');
 
 async function handleRequest() {
   // Load environment variables
-  let userId = process.env.USER_ID;
-  let token = process.env.TOKEN;
-  let telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
-  let telegramChatId = process.env.TELEGRAM_CHAT_ID;
+  // 用户id
+  let userId = 2363
 
+  // 用户令牌 到个人主页-安全-开发者令牌中申请
+  let token = "gBskTBFw3xry0DfduZUCst0hnBBFStUEkWtbaRRX"
+
+  // Telegram Bot Token
+  let telegramBotToken = "1730130055:AAFRBT7sWPB8cGum5-QoahwjdyjzeRo1_K8"
+
+  // Telegram Chat ID
+  let telegramChatId = "1252802069"
   var data = JSON.stringify({
     "data": {
       "type": "users",
