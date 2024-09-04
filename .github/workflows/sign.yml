@@ -20,6 +20,11 @@ jobs:
     - name: Install dependencies
       run: npm install node-fetch@2
 
+    - name: Set up WARP
+      uses: fscarmen/warp-on-actions@v1.1
+      with:
+        stack: dual   # Optional. Support [ ipv4, ipv6, dual ]. Default is dual.
+      
     - name: Run check-in script
       env:
         USER_ID: ${{ secrets.USER_ID }}
