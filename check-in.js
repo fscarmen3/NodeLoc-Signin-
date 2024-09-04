@@ -1,5 +1,3 @@
-const fetch = require('node-fetch');
-
 async function handleRequest() {
   // Load environment variables
   let userId = process.env.USER_ID;
@@ -32,17 +30,28 @@ async function handleRequest() {
 
   try {
     let response = await fetch(config.url, config);
+
+    if (!response.ok) {
+      let responseText = await response.text();
+      console.error('Error response:', responseText);
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    // Check content type
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      let responseText = await response.text();
+      throw new Error(`Unexpected content type: ${contentType}. Response: ${responseText}`);
+    }
+
     let responseData = await response.json();
     let res = responseData.data.attributes;
     let { lastCheckinTime, checkin_last_time, lastCheckinMoney, checkin_days_count } = res;
 
-    // Notification content
     let content = `签到时间：${checkin_last_time}，签到能量：${lastCheckinMoney}。累计签到：${checkin_days_count}天`;
 
-    // Send to Telegram
     await sendTelegram(content, telegramBotToken, telegramChatId);
 
-    // Log
     console.log(content);
 
   } catch (error) {
@@ -50,32 +59,3 @@ async function handleRequest() {
     await sendTelegram('签到失败: ' + error.message, telegramBotToken, telegramChatId);
   }
 }
-
-async function sendTelegram(content, botToken, chatId) {
-  let telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-  let telegramData = {
-    chat_id: chatId,
-    text: "NodeLoc签到结果: " + content
-  };
-
-  try {
-    let response = await fetch(telegramUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(telegramData)
-    });
-
-    if (!response.ok) {
-      console.log('Telegram通知发送失败');
-    } else {
-      console.log('Telegram通知发送成功');
-    }
-  } catch (error) {
-    console.log('Telegram通知发送错误:', error);
-  }
-}
-
-// Run the script
-handleRequest();
