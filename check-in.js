@@ -13,7 +13,8 @@ async function handleRequest() {
 
   // Telegram Chat ID
   let telegramChatId = "1252802069"
-  var data = JSON.stringify({
+
+ var data = JSON.stringify({
     "data": {
       "type": "users",
       "attributes": {
@@ -27,9 +28,9 @@ async function handleRequest() {
 
   var config = {
     method: 'post',
-    url: `https://www.nodeloc.com/api/users/${userId}`,
+    url: 'https://www.nodeloc.com/api/users/' + userId,
     headers: {
-      'Authorization': `Token ${token}`,
+      'Authorization': "Token " + token,
       'x-http-method-override': 'PATCH',
       'Content-Type': 'application/json'
     },
@@ -38,26 +39,17 @@ async function handleRequest() {
 
   try {
     let response = await fetch(config.url, config);
-
-    // Check if the response is okay
-    if (!response.ok) {
-      let responseText = await response.text();  // Get response as text
-      console.error('Error response:', responseText);  // Log error response
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    // Parse JSON response
     let responseData = await response.json();
     let res = responseData.data.attributes;
     let { lastCheckinTime, checkin_last_time, lastCheckinMoney, checkin_days_count } = res;
 
-    // Notification content
+    // 通知内容
     let content = `签到时间：${checkin_last_time}，签到能量：${lastCheckinMoney}。累计签到：${checkin_days_count}天`;
 
-    // Send to Telegram
+    // 发送到Telegram
     await sendTelegram(content, telegramBotToken, telegramChatId);
 
-    // Log
+    // 记录日志
     console.log(content);
 
   } catch (error) {
