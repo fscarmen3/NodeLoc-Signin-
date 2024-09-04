@@ -1,0 +1,29 @@
+name: NodeLoc Check-in
+
+on:
+  schedule:
+    - cron: '0 1 * * *'  # Runs at 1:00 UTC every day
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  check-in:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4.1.7
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4.0.3
+      with:
+        node-version: latest
+
+    - name: Install dependencies
+      run: npm install node-fetch@2
+
+    - name: Run check-in script
+      env:
+        USER_ID: ${{ secrets.USER_ID }}
+        TOKEN: ${{ secrets.TOKEN }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: node check-in.js
