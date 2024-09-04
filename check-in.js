@@ -13,7 +13,7 @@ async function handleRequest() {
 
   // Telegram Chat ID
   let telegramChatId = process.env.TELEGRAM_CHAT_ID;
-  
+
   var data = JSON.stringify({
     "data": {
       "type": "users",
@@ -38,8 +38,32 @@ async function handleRequest() {
   };
 
   try {
+    console.log('Sending request to NodeLoc...');
     let response = await fetch(config.url, config);
-    let responseData = await response.json();
+    
+    console.log('Response status:', response.status);
+    console.log('Response headers:', JSON.stringify(response.headers.raw()));
+
+    let responseText = await response.text();
+    console.log('Raw response:', responseText);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (error) {
+      console.log('Failed to parse response as JSON');
+      throw new Error('Invalid JSON response');
+    }
+
+    if (!responseData.data || !responseData.data.attributes) {
+      console.log('Unexpected response structure:', JSON.stringify(responseData));
+      throw new Error('Unexpected response structure');
+    }
+
     let res = responseData.data.attributes;
     let { lastCheckinTime, checkin_last_time, lastCheckinMoney, checkin_days_count } = res;
 
@@ -85,4 +109,6 @@ async function sendTelegram(content, botToken, chatId) {
 }
 
 // Run the script
-handleRequest();
+handleRequest().catch(error => {
+  console.error('Unhandled error:', error);
+});
