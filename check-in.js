@@ -26,20 +26,18 @@ async function handleRequest() {
     }
   });
 
-  var config = {
-    method: 'post',
-    url: 'https://www.nodeloc.com/api/users/' + userId,
-    headers: {
-      'Authorization': "Token " + token,
-      'x-http-method-override': 'PATCH',
-      'Content-Type': 'application/json'
-    },
-    body: data
-  };
-
   try {
     console.log('Sending request to NodeLoc...');
-    let response = await fetch(config.url, config);
+    let response = await fetch(`https://www.nodeloc.com/api/users/${userId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${token}`,
+        'x-http-method-override': 'PATCH',
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      },
+      body: data
+    });
     
     console.log('Response status:', response.status);
     console.log('Response headers:', JSON.stringify(response.headers.raw()));
@@ -111,4 +109,5 @@ async function sendTelegram(content, botToken, chatId) {
 // Run the script
 handleRequest().catch(error => {
   console.error('Unhandled error:', error);
+});
 });
