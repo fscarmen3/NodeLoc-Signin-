@@ -37,8 +37,35 @@ async function handleRequest() {
   };
 
   try {
+    console.log('Sending request to NodeLoc...');
     let response = await fetch(config.url, config);
-    let responseData = await response.json();
+    
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers.raw());
+
+    // 检查响应状态
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    // 获取响应文本
+    let responseText = await response.text();
+    console.log('Raw response:', responseText);
+    
+    // 尝试解析 JSON
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (jsonError) {
+      console.log('Failed to parse JSON. Error:', jsonError.message);
+      throw new Error('Invalid JSON response');
+    }
+
+    if (!responseData.data || !responseData.data.attributes) {
+      console.log('Unexpected response structure:', JSON.stringify(responseData, null, 2));
+      throw new Error('Unexpected response structure');
+    }
+
     let res = responseData.data.attributes;
     let { lastCheckinTime, checkin_last_time, lastCheckinMoney, checkin_days_count } = res;
 
@@ -49,10 +76,10 @@ async function handleRequest() {
     await sendTelegram(content, telegramBotToken, telegramChatId);
 
     // Log
-    console.log(content);
+    console.log('Check-in successful:', content);
 
   } catch (error) {
-    console.log('Check-in failed: ' + error.message);
+    console.error('Check-in failed:', error);
     await sendTelegram('Check-in failed: ' + error.message, telegramBotToken, telegramChatId);
   }
 }
@@ -65,6 +92,7 @@ async function sendTelegram(content, botToken, chatId) {
   };
 
   try {
+    console.log('Sending Telegram notification...');
     let response = await fetch(telegramUrl, {
       method: 'POST',
       headers: {
@@ -74,13 +102,17 @@ async function sendTelegram(content, botToken, chatId) {
     });
 
     if (!response.ok) {
-      console.log('Failed to send Telegram notification');
+      console.log('Failed to send Telegram notification. Status:', response.status);
+      let responseText = await response.text();
+      console.log('Telegram API response:', responseText);
     } else {
       console.log('Telegram notification sent successfully');
     }
   } catch (error) {
-    console.log('Error sending Telegram notification:', error);
+    console.error('Error sending Telegram notification:', error);
   }
 }
 
-handleRequest();
+handleRequest().catch(error => {
+  console.error('Unhandled error in handleRequest:', error);
+});
