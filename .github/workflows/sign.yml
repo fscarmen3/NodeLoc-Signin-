@@ -17,15 +17,10 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4.0.3
       with:
-        node-version: '18.19.0'
+        node-version: latest
 
     - name: Install dependencies
       run: npm install node-fetch@3.3.2
-
-    - name: Set up WARP
-      uses: fscarmen/warp-on-actions@v1.1
-      with:
-        stack: dual   # Optional. Support [ ipv4, ipv6, dual ]. Default is dual.
       
     - name: Run check-in script
       env:
