@@ -13,8 +13,8 @@ async function handleRequest() {
 
   // Telegram Chat ID
   let telegramChatId = process.env.TELEGRAM_CHAT_ID;
-
- var data = JSON.stringify({
+  
+  var data = JSON.stringify({
     "data": {
       "type": "users",
       "attributes": {
