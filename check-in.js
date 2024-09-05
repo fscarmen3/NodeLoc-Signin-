@@ -1,20 +1,13 @@
 import fetch from 'node-fetch';
 
 async function handleRequest() {
-  // Load environment variables
-  // 用户id
-  let userId = process.env.USER_ID;
+  // 从环境变量加载配置
+  const userId = process.env.USER_ID;
+  const token = process.env.TOKEN;
+  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID;
 
-  // 用户令牌 到个人主页-安全-开发者令牌中申请
-  let token = process.env.TOKEN;
-
-  // Telegram Bot Token
-  let telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
-
-  // Telegram Chat ID
-  let telegramChatId = process.env.TELEGRAM_CHAT_ID;
-  
-  var data = JSON.stringify({
+  const data = JSON.stringify({
     "data": {
       "type": "users",
       "attributes": {
@@ -26,48 +19,58 @@ async function handleRequest() {
     }
   });
 
-  var config = {
+  const config = {
     method: 'post',
-    url: 'https://www.nodeloc.com/api/users/' + userId,
     headers: {
-      'Authorization': "Token " + token,
+      'Authorization': `Token ${token}`,
       'x-http-method-override': 'PATCH',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
       'Content-Type': 'application/json'
     },
     body: data
   };
 
   try {
-    let response = await fetch(config.url, config);
-    let responseData = await response.json();
-    let res = responseData.data.attributes;
-    let { lastCheckinTime, checkin_last_time, lastCheckinMoney, checkin_days_count } = res;
+    const response = await fetch(`https://www.nodeloc.com/api/users/${userId}`, config);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const responseText = await response.text();
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Response is not valid JSON:', responseText);
+      throw new Error('Invalid JSON response');
+    }
 
+    const res = responseData.data.attributes;
+    const { lastCheckinTime, checkin_last_time, lastCheckinMoney, checkin_days_count } = res;
+    
     // 通知内容
-    let content = `签到时间：${checkin_last_time}，签到能量：${lastCheckinMoney}。累计签到：${checkin_days_count}天`;
-
+    const content = `签到时间：${checkin_last_time}，签到能量：${lastCheckinMoney}。累计签到：${checkin_days_count}天`;
+    
     // 发送到Telegram
     await sendTelegram(content, telegramBotToken, telegramChatId);
-
+    
     // 记录日志
     console.log(content);
-
   } catch (error) {
-    console.log('签到失败: ' + error.message);
+    console.error('签到失败:', error.message);
     await sendTelegram('签到失败: ' + error.message, telegramBotToken, telegramChatId);
   }
 }
 
 async function sendTelegram(content, botToken, chatId) {
-  let telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-  let telegramData = {
+  const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  const telegramData = {
     chat_id: chatId,
     text: "NodeLoc签到结果: " + content
   };
 
   try {
-    let response = await fetch(telegramUrl, {
+    const response = await fetch(telegramUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -76,14 +79,14 @@ async function sendTelegram(content, botToken, chatId) {
     });
 
     if (!response.ok) {
-      console.log('Telegram通知发送失败');
+      console.error('Telegram通知发送失败');
     } else {
       console.log('Telegram通知发送成功');
     }
   } catch (error) {
-    console.log('Telegram通知发送错误:', error);
+    console.error('Telegram通知发送错误:', error);
   }
 }
 
-// Run the script
+// 运行脚本
 handleRequest();
