@@ -4,8 +4,8 @@ on:
   schedule:
     - cron: '0 1 * * *'  # Runs at 1:00 UTC every day
   workflow_dispatch:  # Allows manual trigger
-  push:
-    branches: [ "main" ]
+#  push:
+#    branches: [ "main" ]
 
 jobs:
   check-in:
