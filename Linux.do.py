@@ -170,7 +170,7 @@ class LinuxDoBrowser:
 
         logging.info("页面滚动完成，已停止加载更多帖子")
 
-    def click_topic(self):
+def click_topic(self):
     try:
         logging.info("--- 开始滚动页面加载更多帖子 ---")
         self.load_all_topics()
