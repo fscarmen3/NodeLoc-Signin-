@@ -22,8 +22,8 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y chromium-browser chromium-chromedriver
-        pip install selenium
-    
+        pip install selenium requests
+
     - name: Set up WARP
       uses: fscarmen/warp-on-actions@v1.1
       with:
