@@ -171,87 +171,98 @@ class LinuxDoBrowser:
         logging.info("页面滚动完成，已停止加载更多帖子")
 
     def click_topic(self):
-        try:
-            logging.info("--- 开始滚动页面加载更多帖子 ---")
-            self.load_all_topics()
-            topics = self.driver.find_elements(By.CSS_SELECTOR, "#list-area .title")
-            total_topics = len(topics)
-            logging.info(f"共找到 {total_topics} 个帖子")
+    try:
+        logging.info("--- 开始滚动页面加载更多帖子 ---")
+        self.load_all_topics()
+        topics = self.driver.find_elements(By.CSS_SELECTOR, "#list-area .title")
+        total_topics = len(topics)
+        logging.info(f"共找到 {total_topics} 个帖子")
 
-            logging.info("--- 开始浏览帖子 ---")
-            global browse_count
+        logging.info("--- 开始浏览帖子 ---")
+        global browse_count
 
-            for idx, topic in enumerate(topics):
-                parent_element = topic.find_element(By.XPATH, "./ancestor::tr")
+        post_limit = 2  # Set the limit to 2 posts
+        processed_posts = 0  # Counter for processed posts
 
-                is_pinned = parent_element.find_elements(
-                    By.CSS_SELECTOR, ".topic-statuses .pinned"
+        for idx, topic in enumerate(topics):
+            if processed_posts >= post_limit:
+                break  # Exit the loop after processing 2 posts
+
+            parent_element = topic.find_element(By.XPATH, "./ancestor::tr")
+
+            is_pinned = parent_element.find_elements(
+                By.CSS_SELECTOR, ".topic-statuses .pinned"
+            )
+
+            if is_pinned:
+                logging.info(f"跳过置顶的帖子：{topic.text.strip()}")
+                continue
+
+            views_element = parent_element.find_element(
+                By.CSS_SELECTOR, ".num.views .number"
+            )
+            views_title = views_element.get_attribute("title")
+
+            if "此话题已被浏览 " in views_title and " 次" in views_title:
+                views_count_str = views_title.split("此话题已被浏览 ")[1].split(
+                    " 次"
+                )[0]
+                views_count = int(views_count_str.replace(",", ""))
+            else:
+                logging.warning(f"无法解析浏览次数，跳过该帖子: {views_title}")
+                continue
+
+            article_title = topic.text.strip()
+            logging.info(f"打开第 {processed_posts + 1}/{post_limit} 个帖子 ：{article_title}")
+            article_url = topic.get_attribute("href")
+
+            self.driver.execute_script("window.open('');")
+            self.driver.switch_to.window(self.driver.window_handles[-1])
+
+            try:
+                browse_start_time = time.time()
+                self.driver.get(article_url)
+                time.sleep(3)
+
+            except Exception as e:
+                logging.warning(
+                    f"打开帖子 ： {article_title} 时发生错误，跳过该帖子。错误信息: {e}"
                 )
 
-                if is_pinned:
-                    logging.info(f"跳过置顶的帖子：{topic.text.strip()}")
-                    continue
-                views_element = parent_element.find_element(
-                    By.CSS_SELECTOR, ".num.views .number"
-                )
-                views_title = views_element.get_attribute("title")
-
-                if "此话题已被浏览 " in views_title and " 次" in views_title:
-                    views_count_str = views_title.split("此话题已被浏览 ")[1].split(
-                        " 次"
-                    )[0]
-                    views_count = int(views_count_str.replace(",", ""))
-                else:
-                    logging.warning(f"无法解析浏览次数，跳过该帖子: {views_title}")
-                    continue
-                article_title = topic.text.strip()
-                logging.info(f"打开第 {idx + 1}/{len(topics)} 个帖子 ：{article_title}")
-                article_url = topic.get_attribute("href")
-
-                self.driver.execute_script("window.open('');")
-                self.driver.switch_to.window(self.driver.window_handles[-1])
-
+            finally:
+                browse_count += 1
+                processed_posts += 1  # Increment the processed posts counter
+                start_time = time.time()
+                if views_count > VIEW_COUNT:
+                    logging.info(f"📈 当前帖子浏览量为{views_count}")
+                    logging.info(
+                        f"🥳 当前帖子浏览量大于设定值{VIEW_COUNT}，开始进行点赞操作"
+                    )
+                    self.click_like()
+                scroll_duration = random.uniform(5, 10)
                 try:
-                    browse_start_time = time.time()
-                    self.driver.get(article_url)
-                    time.sleep(3)
+                    while time.time() - start_time < scroll_duration:
+                        self.driver.execute_script(
+                            "window.scrollBy(0, window.innerHeight);"
+                        )
 
                 except Exception as e:
-                    logging.warning(
-                        f"打开帖子 ： {article_title} 时发生错误，跳过该帖子。错误信息: {e}"
-                    )
+                    logging.warning(f"在滚动过程中发生错误: {e}")
+                    return False
 
-                finally:
-                    browse_count += 1
-                    start_time = time.time()
-                    if views_count > VIEW_COUNT:
-                        logging.info(f"📈 当前帖子浏览量为{views_count}")
-                        logging.info(
-                            f"🥳 当前帖子浏览量大于设定值{VIEW_COUNT}，开始进行点赞操作"
-                        )
-                        self.click_like()
-                    scroll_duration = random.uniform(5, 10)
-                    try:
-                        while time.time() - start_time < scroll_duration:
-                            self.driver.execute_script(
-                                "window.scrollBy(0, window.innerHeight);"
-                            )
+                browse_end_time = time.time()
+                total_browse_time = browse_end_time - browse_start_time
+                logging.info(f"浏览该帖子时间: {total_browse_time:.2f}秒")
+                self.driver.close()
+                self.driver.switch_to.window(self.driver.window_handles[0])
+                logging.info(
+                    f"已关闭第 {processed_posts}/{post_limit} 个帖子 ： {article_title}"
+                )
 
-                    except Exception as e:
-                        logging.warning(f"在滚动过程中发生错误: {e}")
-                        return False
+        logging.info(f"已完成浏览 {processed_posts} 个帖子")
 
-                    browse_end_time = time.time()
-                    total_browse_time = browse_end_time - browse_start_time
-                    logging.info(f"浏览该帖子时间: {total_browse_time:.2f}秒")
-                    self.driver.close()
-                    self.driver.switch_to.window(self.driver.window_handles[0])
-                    logging.info(
-                        f"已关闭第 {idx + 1}/{len(topics)} 个帖子 ： {article_title}"
-                    )
-
-        except Exception as e:
-            logging.error(f"处理帖子时出错: {e}")
+    except Exception as e:
+        logging.error(f"处理帖子时出错: {e}")
 
     def run(self):
         global browse_count
