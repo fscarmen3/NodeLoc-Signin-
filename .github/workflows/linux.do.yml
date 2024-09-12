@@ -11,10 +11,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4.1.7
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5.2.0
       with:
         python-version: '3.x' # 选择合适的Python版本
     
@@ -24,6 +24,11 @@ jobs:
         sudo apt-get install -y chromium-browser chromium-chromedriver
         pip install selenium
     
+    - name: Set up WARP
+      uses: fscarmen/warp-on-actions@v1.1
+      with:
+        stack: dual   # Optional. Support [ ipv4, ipv6, dual ]. Default is dual.
+
     - name: Run Linux.do script
       env:
         LINUXDO_USERNAME: ${{ secrets.LINUXDO_USERNAME }}
