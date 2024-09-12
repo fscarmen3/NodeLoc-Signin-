@@ -181,13 +181,7 @@ class LinuxDoBrowser:
             logging.info("--- 开始浏览帖子 ---")
             global browse_count
 
-            post_limit = 2  # 设置限制为2个帖子
-            processed_posts = 0  # 已处理帖子的计数器
-
             for idx, topic in enumerate(topics):
-                if processed_posts >= post_limit:
-                    break  # 处理完2个帖子后退出循环
-
                 parent_element = topic.find_element(By.XPATH, "./ancestor::tr")
 
                 is_pinned = parent_element.find_elements(
@@ -211,7 +205,7 @@ class LinuxDoBrowser:
                     logging.warning(f"无法解析浏览次数，跳过该帖子: {views_title}")
                     continue
                 article_title = topic.text.strip()
-                logging.info(f"打开第 {processed_posts + 1}/{post_limit} 个帖子 ：{article_title}")
+                logging.info(f"打开第 {idx + 1}/{len(topics)} 个帖子 ：{article_title}")
                 article_url = topic.get_attribute("href")
 
                 self.driver.execute_script("window.open('');")
@@ -229,7 +223,6 @@ class LinuxDoBrowser:
 
                 finally:
                     browse_count += 1
-                    processed_posts += 1  # 增加已处理帖子的计数
                     start_time = time.time()
                     if views_count > VIEW_COUNT:
                         logging.info(f"📈 当前帖子浏览量为{views_count}")
@@ -254,10 +247,8 @@ class LinuxDoBrowser:
                     self.driver.close()
                     self.driver.switch_to.window(self.driver.window_handles[0])
                     logging.info(
-                        f"已关闭第 {processed_posts}/{post_limit} 个帖子 ： {article_title}"
+                        f"已关闭第 {idx + 1}/{len(topics)} 个帖子 ： {article_title}"
                     )
-
-            logging.info(f"已完成浏览 {processed_posts} 个帖子")
 
         except Exception as e:
             logging.error(f"处理帖子时出错: {e}")
