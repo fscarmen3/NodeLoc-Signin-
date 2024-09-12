@@ -3,6 +3,7 @@ import os
 import time
 import logging
 import random
+import requests
 from os import path
 from io import StringIO
 from selenium import webdriver
@@ -64,19 +65,27 @@ if user_count != len(PASSWORD):
 
 logging.info(f"共找到 {user_count} 个账户")
 
-
-def load_send():
-    cur_path = path.abspath(path.dirname(__file__))
-    if path.exists(cur_path + "/notify.py"):
-        try:
-            from notify import send
-
-            return send
-        except ImportError:
-            return False
-    else:
-        return False
-
+def send_telegram_message(message):
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    
+    if not bot_token or not chat_id:
+        logging.error("Telegram bot token 或 chat ID 未在环境变量中设置。")
+        return
+    
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "HTML"
+    }
+    
+    try:
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        logging.info("Telegram 消息发送成功")
+    except requests.RequestException as e:
+        logging.error(f"发送 Telegram 消息失败: {e}")
 
 class LinuxDoBrowser:
     def __init__(self) -> None:
@@ -222,21 +231,11 @@ class LinuxDoBrowser:
                         )
                         self.click_like()
                     scroll_duration = random.uniform(5, 10)
-                    # screenshot_interval = 2  # 设置截图间隔时间，单位是秒
-                    # screenshot_count = 0
                     try:
                         while time.time() - start_time < scroll_duration:
                             self.driver.execute_script(
                                 "window.scrollBy(0, window.innerHeight);"
                             )
-
-                            # screenshot_count += 1
-                            # screenshot_filename = (
-                            #     f"screenshot_{idx + 1}_{screenshot_count}.png"
-                            # )
-                            # self.driver.save_screenshot(screenshot_filename)
-                            # logging.info(f"已保存截图: {screenshot_filename}")
-                            # time.sleep(screenshot_interval)
 
                     except Exception as e:
                         logging.warning(f"在滚动过程中发生错误: {e}")
@@ -298,20 +297,18 @@ class LinuxDoBrowser:
                 self.driver.quit()
 
         logging.info("所有账户处理完毕")
-        summary = ""
+        summary = "<b>Linux.do浏览帖子结果</b>\n\n"
         for info in account_info:
             summary += (
-                f"用户：{info['username']}\n\n"
+                f"用户：<code>{info['username']}</code>\n"
                 f"本次共浏览 {info['browse_count']} 个帖子\n"
-                f"共点赞{info['like_count']} 个帖子\n"
+                f"共点赞 {info['like_count']} 个帖子\n"
                 f"共用时 {info['spend_time']} 分钟\n"
                 f"{info['connect_info']}\n\n"
             )
-        send = load_send()
-        if callable(send):
-            send("Linux.do浏览帖子", summary)
-        else:
-            print("\n加载通知服务失败")
+        
+        # 通过 Telegram 发送摘要
+        send_telegram_message(summary)
 
     def click_like(self):
         try:
