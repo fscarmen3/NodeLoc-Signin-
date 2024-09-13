@@ -23,12 +23,30 @@ class V2ex:
     def login(self):
         session = requests.Session()
         login_url = "https://www.v2ex.com/signin"
+        
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        })
+        
         response = session.get(login_url)
         
-        # Extract once token and name field
-        once_token = re.search(r'value="(\d+)" name="once"', response.text).group(1)
-        username_field = re.search(r'class="sl" name="(.*?)" value=""', response.text).group(1)
-        
+        if response.status_code != 200:
+            raise Exception(f"登录页面请求失败，状态码：{response.status_code}")
+
+        # 提取 once token
+        once_match = re.search(r'value="(\d+)" name="once"', response.text)
+        if not once_match:
+            print("登录页面内容：", response.text)  # 打印页面内容以进行调试
+            raise Exception("无法找到 once token")
+        once_token = once_match.group(1)
+
+        # 提取用户名字段
+        username_match = re.search(r'class="sl" name="(.*?)" value=""', response.text)
+        if not username_match:
+            print("登录页面内容：", response.text)  # 打印页面内容以进行调试
+            raise Exception("无法找到用户名字段")
+        username_field = username_match.group(1)
+
         login_data = {
             username_field: self.username,
             'password': self.password,
@@ -36,7 +54,15 @@ class V2ex:
             'next': '/'
         }
         
-        session.post(login_url, data=login_data)
+        login_response = session.post(login_url, data=login_data)
+        
+        if login_response.status_code != 200:
+            raise Exception(f"登录请求失败，状态码：{login_response.status_code}")
+
+        # 检查是否登录成功
+        if "签到" not in login_response.text:
+            raise Exception("登录可能失败，请检查用户名和密码")
+
         return session
 
     def sign(self, session):
@@ -50,7 +76,7 @@ class V2ex:
         urls = re.findall(pattern, response.text)
         url = urls[0] if urls else None
         if url is None:
-            return "登录可能失败"
+            return "无法找到签到按钮，可能已经签到"
         if url != "/balance":
             data = {"once": url.split("=")[-1]}
             session.get(
@@ -88,8 +114,12 @@ class V2ex:
         bot.send_message(self.telegram_chat_id, message)
 
     def main(self):
-        session = self.login()
-        result = self.sign(session)
+        try:
+            session = self.login()
+            result = self.sign(session)
+        except Exception as e:
+            result = f"登录或签到过程中出错：{str(e)}"
+        
         self.send_telegram(result)
 
 if __name__ == "__main__":
