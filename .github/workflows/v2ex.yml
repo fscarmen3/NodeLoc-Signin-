@@ -1,0 +1,30 @@
+name: V2EX Sign In
+
+on:
+  schedule:
+    - cron: '10 19 * * *'
+  workflow_dispatch:
+
+jobs:
+  signin:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests urllib3 pyTelegramBotAPI
+    
+    - name: Run sign in script
+      env:
+        V2EX_USERNAME: ${{ secrets.V2EX_USERNAME }}
+        V2EX_PASSWORD: ${{ secrets.V2EX_PASSWORD }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: python v2ex_signin.py
